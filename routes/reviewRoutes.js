@@ -1,20 +1,27 @@
-const express = require('express');
-const { ObjectId } = require('mongodb');
-const { collections } = require('../config/db');
+const express = require("express");
+const { ObjectId } = require("mongodb");
+const { collections } = require("../config/db");
 
 const router = express.Router();
 
 // POST /api/reviews
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const result = await collections.reviews.insertOne({ ...req.body, createdAt: new Date() });
-    
+    const result = await collections.reviews.insertOne({
+      ...req.body,
+      createdAt: new Date(),
+    });
+
     // Dynamically compute average rating for the doctor and update the doctor document
-    const reviews = await collections.reviews.find({ doctorId: req.body.doctorId }).toArray();
-    const avgRating = reviews.reduce((sum, r) => sum + parseFloat(r.rating || 0), 0) / reviews.length;
+    const reviews = await collections.reviews
+      .find({ doctorId: req.body.doctorId })
+      .toArray();
+    const avgRating =
+      reviews.reduce((sum, r) => sum + parseFloat(r.rating || 0), 0) /
+      reviews.length;
     await collections.doctors.updateOne(
       { _id: new ObjectId(req.body.doctorId) },
-      { $set: { rating: parseFloat(avgRating.toFixed(1)) } }
+      { $set: { rating: parseFloat(avgRating.toFixed(1)) } },
     );
 
     res.json(result);
@@ -24,7 +31,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/reviews
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { doctorId, patientId, limit } = req.query;
     let query = {};
@@ -43,11 +50,11 @@ router.get('/', async (req, res) => {
 });
 
 // PATCH /api/reviews/:id
-router.patch('/:id', async (req, res) => {
+router.patch("/:id", async (req, res) => {
   try {
     const result = await collections.reviews.updateOne(
       { _id: new ObjectId(req.params.id) },
-      { $set: req.body }
+      { $set: req.body },
     );
     res.json(result);
   } catch (err) {
@@ -56,9 +63,11 @@ router.patch('/:id', async (req, res) => {
 });
 
 // DELETE /api/reviews/:id
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const result = await collections.reviews.deleteOne({ _id: new ObjectId(req.params.id) });
+    const result = await collections.reviews.deleteOne({
+      _id: new ObjectId(req.params.id),
+    });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

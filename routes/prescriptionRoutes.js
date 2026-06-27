@@ -1,13 +1,16 @@
-const express = require('express');
-const { ObjectId } = require('mongodb');
-const { collections } = require('../config/db');
+const express = require("express");
+const { ObjectId } = require("mongodb");
+const { collections } = require("../config/db");
 
 const router = express.Router();
 
 // POST /api/prescriptions
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const result = await collections.prescriptions.insertOne({ ...req.body, createdAt: new Date() });
+    const result = await collections.prescriptions.insertOne({
+      ...req.body,
+      createdAt: new Date(),
+    });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -15,9 +18,11 @@ router.post('/', async (req, res) => {
 });
 
 // GET /api/prescriptions
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const prescriptions = await collections.prescriptions.find(req.query).toArray();
+    const prescriptions = await collections.prescriptions
+      .find(req.query)
+      .toArray();
     res.json(prescriptions);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -25,11 +30,11 @@ router.get('/', async (req, res) => {
 });
 
 // PATCH /api/prescriptions/:id
-router.patch('/:id', async (req, res) => {
+router.patch("/:id", async (req, res) => {
   try {
     const result = await collections.prescriptions.updateOne(
       { _id: new ObjectId(req.params.id) },
-      { $set: req.body }
+      { $set: req.body },
     );
     res.json(result);
   } catch (err) {
@@ -38,9 +43,11 @@ router.patch('/:id', async (req, res) => {
 });
 
 // DELETE /api/prescriptions/:id
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const result = await collections.prescriptions.deleteOne({ _id: new ObjectId(req.params.id) });
+    const result = await collections.prescriptions.deleteOne({
+      _id: new ObjectId(req.params.id),
+    });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
