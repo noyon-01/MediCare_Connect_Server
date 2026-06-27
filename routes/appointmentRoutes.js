@@ -1,17 +1,21 @@
-const express = require('express');
-const { ObjectId } = require('mongodb');
-const { collections } = require('../config/db');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const express = require("express");
+const { ObjectId } = require("mongodb");
+const { collections } = require("../config/db");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const router = express.Router();
 
 // POST /api/appointments
-router.post('/appointments', async (req, res) => {
+router.post("/appointments", async (req, res) => {
   try {
-    const appointment = { ...req.body, appointmentStatus: 'Pending', createdAt: new Date() };
+    const appointment = {
+      ...req.body,
+      appointmentStatus: "Pending",
+      createdAt: new Date(),
+    };
     const result = await collections.appointments.insertOne(appointment);
-    
-    if (req.body.paymentStatus === 'Paid') {
+
+    if (req.body.paymentStatus === "Paid") {
       await collections.payments.insertOne({
         appointmentId: result.insertedId.toString(),
         patientId: req.body.patientId,
@@ -21,7 +25,7 @@ router.post('/appointments', async (req, res) => {
         amount: req.body.amount,
         transactionId: req.body.transactionId,
         paymentDate: new Date(),
-        status: 'Paid'
+        status: "Paid",
       });
     }
 
@@ -32,7 +36,7 @@ router.post('/appointments', async (req, res) => {
 });
 
 // GET /api/my-appointments
-router.get('/my-appointments', async (req, res) => {
+router.get("/my-appointments", async (req, res) => {
   try {
     const { patientId, doctorId } = req.query;
     let query = {};
@@ -46,40 +50,60 @@ router.get('/my-appointments', async (req, res) => {
 });
 
 // PATCH /api/appointments/:id
-router.patch('/appointments/:id', async (req, res) => {
+router.patch("/appointments/:id", async (req, res) => {
   try {
     const appointmentId = req.params.id;
     const updateData = { ...req.body };
-    
+
     // Find existing appointment first
-    const appointment = await collections.appointments.findOne({ _id: new ObjectId(appointmentId) });
+    const appointment = await collections.appointments.findOne({
+      _id: new ObjectId(appointmentId),
+    });
     if (!appointment) {
       return res.status(404).json({ error: "Appointment not found" });
     }
 
     // Check if status is transitioning to Cancelled
-    if (updateData.appointmentStatus === 'Cancelled' && appointment.appointmentStatus !== 'Cancelled') {
-      if (appointment.paymentStatus === 'Paid') {
-        updateData.paymentStatus = 'Refunded';
+    if (
+      updateData.appointmentStatus === "Cancelled" &&
+      appointment.appointmentStatus !== "Cancelled"
+    ) {
+      if (appointment.paymentStatus === "Paid") {
+        updateData.paymentStatus = "Refunded";
 
         // Process Stripe refund if there is a real transaction ID
         const transactionId = appointment.transactionId;
-        if (transactionId && !transactionId.startsWith('ch_mock_') && !transactionId.startsWith('pi_mock_') && !transactionId.includes('mock')) {
+        if (
+          transactionId &&
+          !transactionId.startsWith("ch_mock_") &&
+          !transactionId.startsWith("pi_mock_") &&
+          !transactionId.includes("mock")
+        ) {
           try {
             await stripe.refunds.create({
-              payment_intent: transactionId
+              payment_intent: transactionId,
             });
-            console.log(`Successfully processed Stripe refund for appointment ${appointmentId}`);
+            console.log(
+              `Successfully processed Stripe refund for appointment ${appointmentId}`,
+            );
           } catch (stripeErr) {
-            console.error(`Stripe refund failed for transaction ${transactionId}:`, stripeErr.message);
+            console.error(
+              `Stripe refund failed for transaction ${transactionId}:`,
+              stripeErr.message,
+            );
             // Try fallback to charge parameter
             try {
               await stripe.refunds.create({
-                charge: transactionId
+                charge: transactionId,
               });
-              console.log(`Successfully processed Stripe fallback refund for appointment ${appointmentId}`);
+              console.log(
+                `Successfully processed Stripe fallback refund for appointment ${appointmentId}`,
+              );
             } catch (fallbackErr) {
-              console.error(`Stripe fallback refund failed:`, fallbackErr.message);
+              console.error(
+                `Stripe fallback refund failed:`,
+                fallbackErr.message,
+              );
             }
           }
         }
@@ -88,17 +112,20 @@ router.patch('/appointments/:id', async (req, res) => {
         try {
           await collections.payments.updateOne(
             { appointmentId: appointmentId },
-            { $set: { status: 'Refunded', refundedAt: new Date() } }
+            { $set: { status: "Refunded", refundedAt: new Date() } },
           );
         } catch (dbErr) {
-          console.error(`Failed to update payments collection for appointment ${appointmentId}:`, dbErr);
+          console.error(
+            `Failed to update payments collection for appointment ${appointmentId}:`,
+            dbErr,
+          );
         }
       }
     }
 
     const result = await collections.appointments.updateOne(
       { _id: new ObjectId(appointmentId) },
-      { $set: updateData }
+      { $set: updateData },
     );
     res.json(result);
   } catch (err) {
@@ -107,9 +134,11 @@ router.patch('/appointments/:id', async (req, res) => {
 });
 
 // DELETE /api/appointments/:id
-router.delete('/appointments/:id', async (req, res) => {
+router.delete("/appointments/:id", async (req, res) => {
   try {
-    const result = await collections.appointments.deleteOne({ _id: new ObjectId(req.params.id) });
+    const result = await collections.appointments.deleteOne({
+      _id: new ObjectId(req.params.id),
+    });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
