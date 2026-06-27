@@ -1,24 +1,26 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { connectDB, collections } = require('./config/db');
-const jwt = require('jsonwebtoken');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { connectDB, collections } = require("./config/db");
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  'http://localhost:3000',
-  'https://medi-care-connect-client.vercel.app'
+  "http://localhost:3000",
+  "https://medi-care-connect-client.vercel.app",
 ];
 if (process.env.BETTER_AUTH_URL) {
   allowedOrigins.push(process.env.BETTER_AUTH_URL.trim());
 }
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // Database connection middleware for Serverless environment
@@ -27,12 +29,14 @@ app.use(async (req, res, next) => {
     await connectDB();
     next();
   } catch (err) {
-    res.status(500).json({ error: "Database connection failed: " + err.message });
+    res
+      .status(500)
+      .json({ error: "Database connection failed: " + err.message });
   }
 });
 
 // JWT ROUTE
-app.post('/api/jwt', async (req, res) => {
+app.post("/api/jwt", async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -47,16 +51,20 @@ app.post('/api/jwt', async (req, res) => {
     const payload = {
       id: user._id.toString(),
       email: user.email,
-      role: user.role || 'patient'
+      role: user.role || "patient",
     };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'fallback-secret-key-123', { expiresIn: '7d' });
+    const token = jwt.sign(
+      payload,
+      process.env.JWT_SECRET || "fallback-secret-key-123",
+      { expiresIn: "7d" },
+    );
 
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: false,
       secure: false,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.json({ token, user: payload });
@@ -66,27 +74,30 @@ app.post('/api/jwt', async (req, res) => {
 });
 
 // ROOT ROUTE
-app.get('/', (req, res) => {
-  res.send('MediCare Connect Server is running successfully!');
+app.get("/", (req, res) => {
+  res.send("MediCare Connect Server is running successfully!");
 });
 
 // CORE STATUS/HEALTH CHECK API
-app.get('/api/status', (req, res) => {
+app.get("/api/status", (req, res) => {
   res.json({ success: true, message: "MediCare Connect API Running" });
 });
 
-app.get('/api/stats', async (req, res) => {
+app.get("/api/stats", async (req, res) => {
   try {
-    const doctorsCount = await collections.doctors.countDocuments({ verificationStatus: 'verified' });
+    const doctorsCount = await collections.doctors.countDocuments({
+      verificationStatus: "verified",
+    });
     const appointmentsCount = await collections.appointments.countDocuments();
     const reviewsCount = await collections.reviews.countDocuments();
-    const uniquePatients = await collections.appointments.aggregate([
-      { $group: { _id: "$patientId" } }
-    ]).toArray();
-    
+    const uniquePatients = await collections.appointments
+      .aggregate([{ $group: { _id: "$patientId" } }])
+      .toArray();
+
     // Add realistic baseline offsets for a premium, established look
     const displayDoctors = doctorsCount > 0 ? doctorsCount + 140 : 150;
-    const displayAppointments = appointmentsCount > 0 ? appointmentsCount + 2450 : 2500;
+    const displayAppointments =
+      appointmentsCount > 0 ? appointmentsCount + 2450 : 2500;
     const displayReviews = reviewsCount > 0 ? reviewsCount + 780 : 800;
     const displayPatients = Math.max(10000, uniquePatients.length + 9980);
 
@@ -94,7 +105,7 @@ app.get('/api/stats', async (req, res) => {
       doctors: displayDoctors,
       patients: displayPatients,
       appointments: displayAppointments,
-      reviews: displayReviews
+      reviews: displayReviews,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -102,20 +113,20 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // Import modular routes
-const doctorRoutes = require('./routes/doctorRoutes');
-const appointmentRoutes = require('./routes/appointmentRoutes');
-const reviewRoutes = require('./routes/reviewRoutes');
-const prescriptionRoutes = require('./routes/prescriptionRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+const doctorRoutes = require("./routes/doctorRoutes");
+const appointmentRoutes = require("./routes/appointmentRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
+const prescriptionRoutes = require("./routes/prescriptionRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 // Mount modular routes
-app.use('/api/doctors', doctorRoutes);
-app.use('/api', appointmentRoutes);
-app.use('/api/reviews', reviewRoutes);
-app.use('/api/prescriptions', prescriptionRoutes);
-app.use('/api', paymentRoutes);
-app.use('/api/admin', adminRoutes);
+app.use("/api/doctors", doctorRoutes);
+app.use("/api", appointmentRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/prescriptions", prescriptionRoutes);
+app.use("/api", paymentRoutes);
+app.use("/api/admin", adminRoutes);
 
 async function run() {
   try {
@@ -139,7 +150,7 @@ async function run() {
           availableDays: ["Monday", "Wednesday", "Friday"],
           availableSlots: ["09:00 AM - 10:00 AM", "10:00 AM - 11:00 AM"],
           verificationStatus: "verified",
-          rating: 4.9
+          rating: 4.9,
         },
         {
           doctorName: "Dr. Michael Chang",
@@ -152,7 +163,7 @@ async function run() {
           availableDays: ["Tuesday", "Thursday"],
           availableSlots: ["02:00 PM - 03:00 PM", "03:00 PM - 04:00 PM"],
           verificationStatus: "verified",
-          rating: 4.8
+          rating: 4.8,
         },
         {
           doctorName: "Dr. Emily Rodriguez",
@@ -165,7 +176,7 @@ async function run() {
           availableDays: ["Monday", "Tuesday", "Thursday"],
           availableSlots: ["10:00 AM - 11:00 AM", "11:00 AM - 12:00 PM"],
           verificationStatus: "verified",
-          rating: 5.0
+          rating: 5.0,
         },
         {
           doctorName: "Dr. David Kim",
@@ -178,7 +189,7 @@ async function run() {
           availableDays: ["Wednesday", "Friday"],
           availableSlots: ["03:00 PM - 04:00 PM", "04:00 PM - 05:00 PM"],
           verificationStatus: "verified",
-          rating: 4.7
+          rating: 4.7,
         },
         {
           doctorName: "Dr. Sophia Martinez",
@@ -191,7 +202,7 @@ async function run() {
           availableDays: ["Tuesday", "Friday"],
           availableSlots: ["09:00 AM - 10:00 AM", "04:00 PM - 05:00 PM"],
           verificationStatus: "verified",
-          rating: 4.9
+          rating: 4.9,
         },
         {
           doctorName: "Dr. James Wilson",
@@ -204,7 +215,7 @@ async function run() {
           availableDays: ["Monday", "Thursday"],
           availableSlots: ["09:00 AM - 10:00 AM", "03:00 PM - 04:00 PM"],
           verificationStatus: "verified",
-          rating: 4.8
+          rating: 4.8,
         },
         {
           doctorName: "Dr. Lisa Anderson",
@@ -217,7 +228,7 @@ async function run() {
           availableDays: ["Tuesday", "Wednesday", "Friday"],
           availableSlots: ["10:00 AM - 11:00 AM", "02:00 PM - 03:00 PM"],
           verificationStatus: "verified",
-          rating: 4.9
+          rating: 4.9,
         },
         {
           doctorName: "Dr. Robert Taylor",
@@ -230,7 +241,7 @@ async function run() {
           availableDays: ["Wednesday", "Thursday"],
           availableSlots: ["11:00 AM - 12:00 PM", "04:00 PM - 05:00 PM"],
           verificationStatus: "verified",
-          rating: 4.6
+          rating: 4.6,
         },
         {
           doctorName: "Dr. Patricia Thomas",
@@ -243,7 +254,7 @@ async function run() {
           availableDays: ["Monday", "Friday"],
           availableSlots: ["09:00 AM - 10:00 AM", "03:00 PM - 04:00 PM"],
           verificationStatus: "verified",
-          rating: 4.7
+          rating: 4.7,
         },
         {
           doctorName: "Dr. William White",
@@ -256,8 +267,8 @@ async function run() {
           availableDays: ["Monday", "Tuesday"],
           availableSlots: ["10:00 AM - 11:00 AM", "02:00 PM - 03:00 PM"],
           verificationStatus: "verified",
-          rating: 4.9
-        }
+          rating: 4.9,
+        },
       ];
       await collections.doctors.insertMany(sampleDoctors);
       console.log("Seeded default doctors.");
@@ -269,25 +280,28 @@ async function run() {
           doctorId: docs[0]._id.toString(),
           doctorName: docs[0].doctorName,
           rating: 5,
-          reviewText: "Dr. Jenkins was extremely professional and explained everything in clear detail. Her diagnosis was spot on.",
-          createdAt: new Date()
+          reviewText:
+            "Dr. Jenkins was extremely professional and explained everything in clear detail. Her diagnosis was spot on.",
+          createdAt: new Date(),
         },
         {
           patientName: "Alice Smith",
           doctorId: docs[1]._id.toString(),
           doctorName: docs[1].doctorName,
           rating: 5,
-          reviewText: "Excellent neurological consultation. Highly knowledgeable and caring specialist.",
-          createdAt: new Date()
+          reviewText:
+            "Excellent neurological consultation. Highly knowledgeable and caring specialist.",
+          createdAt: new Date(),
         },
         {
           patientName: "Robert Johnson",
           doctorId: docs[2]._id.toString(),
           doctorName: docs[2].doctorName,
           rating: 4,
-          reviewText: "Great experience at the pediatric clinic. Very friendly staff and child-friendly environment.",
-          createdAt: new Date()
-        }
+          reviewText:
+            "Great experience at the pediatric clinic. Very friendly staff and child-friendly environment.",
+          createdAt: new Date(),
+        },
       ];
       await collections.reviews.insertMany(sampleReviews);
       console.log("Seeded default reviews.");
@@ -297,7 +311,7 @@ async function run() {
     try {
       const allDoctors = await collections.doctors.find({}).toArray();
       const doctorMap = new Map();
-      allDoctors.forEach(doc => {
+      allDoctors.forEach((doc) => {
         doctorMap.set(doc.doctorName, doc._id.toString());
       });
 
@@ -308,7 +322,7 @@ async function run() {
         if (correctId && app.doctorId !== correctId) {
           await collections.appointments.updateOne(
             { _id: app._id },
-            { $set: { doctorId: correctId } }
+            { $set: { doctorId: correctId } },
           );
         }
       }
@@ -320,7 +334,7 @@ async function run() {
         if (correctId && rev.doctorId !== correctId) {
           await collections.reviews.updateOne(
             { _id: rev._id },
-            { $set: { doctorId: correctId } }
+            { $set: { doctorId: correctId } },
           );
         }
       }
@@ -332,18 +346,24 @@ async function run() {
         if (correctId && pm.doctorId !== correctId) {
           await collections.payments.updateOne(
             { _id: pm._id },
-            { $set: { doctorId: correctId } }
+            { $set: { doctorId: correctId } },
           );
         }
       }
 
       // Update prescriptions
-      const allPrescriptions = await collections.prescriptions.find({}).toArray();
-      const { ObjectId } = require('mongodb');
+      const allPrescriptions = await collections.prescriptions
+        .find({})
+        .toArray();
+      const { ObjectId } = require("mongodb");
       for (const pr of allPrescriptions) {
         if (pr.appointmentId) {
           let appQueryId = pr.appointmentId;
-          if (typeof appQueryId === "string" && appQueryId.length === 24 && /^[0-9a-fA-F]{24}$/.test(appQueryId)) {
+          if (
+            typeof appQueryId === "string" &&
+            appQueryId.length === 24 &&
+            /^[0-9a-fA-F]{24}$/.test(appQueryId)
+          ) {
             appQueryId = new ObjectId(appQueryId);
           } else if (appQueryId instanceof ObjectId) {
             // Keep as is
@@ -351,12 +371,14 @@ async function run() {
             // Skip invalid ID formats
             continue;
           }
-          
-          const app = await collections.appointments.findOne({ _id: appQueryId });
+
+          const app = await collections.appointments.findOne({
+            _id: appQueryId,
+          });
           if (app && pr.doctorId !== app.doctorId) {
             await collections.prescriptions.updateOne(
               { _id: pr._id },
-              { $set: { doctorId: app.doctorId } }
+              { $set: { doctorId: app.doctorId } },
             );
           }
         }
@@ -364,20 +386,25 @@ async function run() {
 
       // Re-calculate all doctor average ratings based on reviews
       for (const doc of allDoctors) {
-        const reviews = await collections.reviews.find({ doctorId: doc._id.toString() }).toArray();
+        const reviews = await collections.reviews
+          .find({ doctorId: doc._id.toString() })
+          .toArray();
         if (reviews.length > 0) {
-          const avgRating = reviews.reduce((sum, r) => sum + parseFloat(r.rating || 0), 0) / reviews.length;
+          const avgRating =
+            reviews.reduce((sum, r) => sum + parseFloat(r.rating || 0), 0) /
+            reviews.length;
           await collections.doctors.updateOne(
             { _id: doc._id },
-            { $set: { rating: parseFloat(avgRating.toFixed(1)) } }
+            { $set: { rating: parseFloat(avgRating.toFixed(1)) } },
           );
         }
       }
-      console.log("Database doctorId and ratings integrity checked and updated.");
+      console.log(
+        "Database doctorId and ratings integrity checked and updated.",
+      );
     } catch (err) {
       console.error("Failed to run doctorId migration check:", err);
     }
-
   } catch (err) {
     console.error("Initialization error:", err);
   }
