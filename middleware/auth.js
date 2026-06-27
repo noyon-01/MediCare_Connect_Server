@@ -1,6 +1,6 @@
-const { ObjectId } = require('mongodb');
-const { collections } = require('../config/db');
-const jwt = require('jsonwebtoken');
+const { ObjectId } = require("mongodb");
+const { collections } = require("../config/db");
+const jwt = require("jsonwebtoken");
 
 // MIDDLEWARE: Verify Session Token in MongoDB or JWT
 async function verifySession(req, res, next) {
@@ -8,28 +8,33 @@ async function verifySession(req, res, next) {
     const authHeader = req.headers.authorization;
     let token = null;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.split(' ')[1];
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
     } else if (req.headers.cookie) {
       // Parse session or JWT token from cookies
-      const cookies = req.headers.cookie.split(';').reduce((acc, c) => {
-        const parts = c.trim().split('=');
+      const cookies = req.headers.cookie.split(";").reduce((acc, c) => {
+        const parts = c.trim().split("=");
         if (parts.length === 2) {
           acc[parts[0]] = parts[1];
         }
         return acc;
       }, {});
-      token = cookies['token'] || cookies['better-auth.session-token'];
+      token = cookies["token"] || cookies["better-auth.session-token"];
     }
 
     if (!token) {
-      return res.status(401).json({ error: "Unauthorized: No session token provided" });
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: No session token provided" });
     }
 
     // Try verifying as JWT first
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-123');
-      
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || "fallback-secret-key-123",
+      );
+
       let userIdQuery = decoded.id;
       if (typeof userIdQuery === "string") {
         try {
@@ -45,7 +50,9 @@ async function verifySession(req, res, next) {
       }
 
       if (userDoc.status === "suspended") {
-        return res.status(403).json({ error: "Forbidden: Your account has been suspended" });
+        return res
+          .status(403)
+          .json({ error: "Forbidden: Your account has been suspended" });
       }
 
       req.user = userDoc;
@@ -53,13 +60,12 @@ async function verifySession(req, res, next) {
     } catch (jwtErr) {
       // Fallback: search for Better Auth session token in DB
       const sessionDoc = await collections.session.findOne({
-        $or: [
-          { token: token },
-          { sessionToken: token }
-        ]
+        $or: [{ token: token }, { sessionToken: token }],
       });
       if (!sessionDoc || new Date(sessionDoc.expiresAt) < new Date()) {
-        return res.status(401).json({ error: "Unauthorized: Invalid or expired session" });
+        return res
+          .status(401)
+          .json({ error: "Unauthorized: Invalid or expired session" });
       }
 
       let userIdQuery = sessionDoc.userId;
@@ -77,17 +83,21 @@ async function verifySession(req, res, next) {
       }
 
       if (userDoc.status === "suspended") {
-        return res.status(403).json({ error: "Forbidden: Your account has been suspended" });
+        return res
+          .status(403)
+          .json({ error: "Forbidden: Your account has been suspended" });
       }
 
       req.user = userDoc;
       return next();
     }
   } catch (err) {
-    res.status(500).json({ error: "Error in authentication middleware: " + err.message });
+    res
+      .status(500)
+      .json({ error: "Error in authentication middleware: " + err.message });
   }
 }
 
 module.exports = {
-  verifySession
+  verifySession,
 };
