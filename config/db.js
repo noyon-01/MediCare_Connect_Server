@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion } = require("mongodb");
 
 const uri = process.env.MongoDB_URI;
 if (!uri) {
@@ -11,7 +11,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 const db = client.db("medicareconnect");
@@ -24,7 +24,7 @@ const collections = {
   reviews: db.collection("reviews"),
   payments: db.collection("payments"),
   prescriptions: db.collection("prescriptions"),
-  session: db.collection("session")
+  session: db.collection("session"),
 };
 
 async function connectDB() {
@@ -41,5 +41,5 @@ module.exports = {
   client,
   db,
   collections,
-  connectDB
+  connectDB,
 };
