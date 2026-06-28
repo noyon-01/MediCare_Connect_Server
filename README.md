@@ -9,11 +9,11 @@ https://medi-care-connect-client-lime.vercel.app
 ## 🔗 Repositories
 
 ### Client Repository
-
+https://github.com/noyon-01/MediCare_Connect_Client
 
 
 ### Server Repository
-
+https://github.com/noyon-01/MediCare_Connect_Server
 
 
 ---
